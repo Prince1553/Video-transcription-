@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload and Transcribe</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 70%;
+            margin: auto;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 36px;
+        }
+        form {
+            margin-top: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        input[type="file"] {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 16px;
+            border: 1px solid #bdc3c7;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            font-size: 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #transcriptionArea {
+            margin-top: 30px;
+            display: none;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #resultArea {
+            margin-top: 20px;
+        }
+        #resultArea p {
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        footer {
+            margin-top: 50px;
+            color: #7f8c8d;
+        }
+        button:focus, input:focus {
+            outline: none;
+            border: 2px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload and Transcribe Video</h1>
+        
+        <form id="uploadForm" action="/upload/" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="video" required>
+            <button type="submit"><i class="fas fa-play-circle"></i> Transcribe</button>
+        </form>
+
+        <div id="transcriptionArea">
+            <h2>Transcription</h2>
+            <p id="transcriptionText"></p>
+
+            <h3>Actions</h3>
+            <button id="searchWordBtn">Search Word</button>
+            <button id="wordCountBtn">Word Count</button>
+            <button id="summaryBtn">Generate Summary</button>
+
+            <div id="resultArea">
+                <h4>Results</h4>
+                <p id="resultText"></p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024  Prince Shukla</p>
+    </footer>
+
+    <script>
+        $("#uploadForm").on("submit", function(event) {
+            event.preventDefault();
+            let formData = new FormData(this);
+
+            $.ajax({
+                url: "/upload/",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $("#transcriptionText").text(response.transcription);
+                    $("#transcriptionArea").show();
+                },
+                error: function() {
+                    alert("Error uploading video.");
+                }
+            });
+        });
+
+        $("#searchWordBtn").on("click", function() {
+            let word = prompt("Enter the word to search:");
+            let transcription = $("#transcriptionText").text();
+
+            if (word) {
+                $.get("/search/", { transcription: transcription, word: word }, function(response) {
+                    $("#resultText").text(response.message);
+                }).fail(function() {
+                    alert("Error searching word.");
+                });
+            }
+        });
+
+        $("#wordCountBtn").on("click", function() {
+            let word = prompt("Enter the word to count:");
+            let transcription = $("#transcriptionText").text();
+
+            if (word) {
+                $.get("/count/", { transcription: transcription, word: word }, function(response) {
+                    $("#resultText").text(`Word '${response.word}' appears ${response.count} times.`);
+                }).fail(function() {
+                    alert("Error counting word.");
+                });
+            }
+        });
+
+        $("#summaryBtn").on("click", function() {
+            let transcription = $("#transcriptionText").text();
+
+            $.get("/summary/", { transcription: transcription }, function(response) {
+                $("#resultText").text("Summary: " + response.summary.join(" "));
+            }).fail(function() {
+                alert("Error generating summary.");
+            });
+        });
+    </script>
+</body>
+</html> 
